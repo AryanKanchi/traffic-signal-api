@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Signal Intelligence API</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    h1 { text-align: center; color: #00d4ff; font-size: 1.8rem; margin-bottom: 6px; }
+    .subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 0.95rem; }
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 650px) { .container { grid-template-columns: 1fr; } }
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      color: #00d4ff;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #2a2d3a;
+      padding-bottom: 10px;
+    }
+    label { display: block; font-size: 0.8rem; color: #aaa; margin: 10px 0 3px; }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      background: #0f1117;
+      border: 1px solid #2a2d3a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 0.88rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #00d4ff; }
+    button {
+      margin-top: 18px;
+      width: 100%;
+      padding: 11px;
+      background: #00d4ff;
+      color: #0f1117;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #00b8d9; }
+    button:disabled { background: #2a2d3a; color: #555; cursor: not-allowed; }
+    .result {
+      margin-top: 14px;
+      background: #0f1117;
+      border: 1px solid #2a2d3a;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 0.86rem;
+      display: none;
+    }
+    .result.show { display: block; }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #1a1d27;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .lbl { color: #777; }
+    .val { color: #fff; font-weight: 500; text-align: right; max-width: 60%; }
+    .green { color: #00e676; }
+    .red   { color: #ff5252; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+    .badge-green { background: rgba(0,230,118,0.12); color: #00e676; border: 1px solid #00e676; }
+    .badge-red   { background: rgba(255,82,82,0.12);  color: #ff5252; border: 1px solid #ff5252; }
+    .error-msg { color: #ff5252; font-size: 0.82rem; margin-top: 8px; line-height: 1.5; }
+    code { background: #1a1d27; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+<h1>🚦 Traffic Signal Intelligence</h1>
+<p class="subtitle">ML-powered signal preemption for emergency vehicles &nbsp;|&nbsp; <a href="/docs" style="color:#00d4ff">API Docs</a></p>
+
+<div class="container">
+
+  <!-- CLEARANCE CARD -->
+  <div class="card">
+    <h2>🚑 Clearance Distance Prediction</h2>
+
+    <label>Queue Length (m)</label>
+    <input type="number" id="queue" value="120">
+
+    <label>Flow Speed (kmph)</label>
+    <input type="number" id="speed" value="20">
+
+    <label>Car Count</label>
+    <input type="number" id="cars" value="140">
+
+    <label>Bike Count</label>
+    <input type="number" id="bikes" value="90">
+
+    <label>Bus Count</label>
+    <input type="number" id="buses" value="4">
+
+    <label>Truck Count</label>
+    <input type="number" id="trucks" value="10">
+
+    <label>Weighted Traffic Index</label>
+    <input type="number" id="wti" value="540">
+
+    <label>EV Distance from Signal (km)</label>
+    <input type="number" id="evdist" value="1.5" step="0.1">
+
+    <label>Cycle Position (sec)</label>
+    <input type="number" id="cycle" value="30">
+
+    <label>Model</label>
+    <select id="model">
+      <option value="XGBoost">XGBoost</option>
+      <option value="Tuned XGBoost">Tuned XGBoost</option>
+      <option value="Random Forest">Random Forest</option>
+    </select>
+
+    <button onclick="predictClearance()" id="btnC">Predict Clearance Distance</button>
+    <div class="result" id="cResult"></div>
+  </div>
+
+  <!-- INCIDENT CARD -->
+  <div class="card">
+    <h2>⚠️ Incident Detection</h2>
+
+    <label>Queue Length (m)</label>
+    <input type="number" id="i_queue" value="350">
+
+    <label>Flow Speed (kmph)</label>
+    <input type="number" id="i_speed" value="5">
+
+    <label>Car Count</label>
+    <input type="number" id="i_cars" value="180">
+
+    <label>Bike Count</label>
+    <input type="number" id="i_bikes" value="50">
+
+    <label>Bus Count</label>
+    <input type="number" id="i_buses" value="6">
+
+    <label>Truck Count</label>
+    <input type="number" id="i_trucks" value="15">
+
+    <label>Weighted Traffic Index</label>
+    <input type="number" id="i_wti" value="620">
+
+    <label>EV Distance from Signal (km)</label>
+    <input type="number" id="i_evdist" value="2.0" step="0.1">
+
+    <label>Cycle Position (sec)</label>
+    <input type="number" id="i_cycle" value="60">
+
+    <button onclick="predictIncident()" id="btnI">Detect Incident</button>
+    <div class="result" id="iResult"></div>
+  </div>
+
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000";
+
+  function row(label, value, cls) {
+    cls = cls || "";
+    return '<div class="result-row"><span class="lbl">' + label + '</span><span class="val ' + cls + '">' + value + '</span></div>';
+  }
+
+  function getVal(id) {
+    var el = document.getElementById(id);
+    return el.type === "number" ? parseFloat(el.value) : el.value;
+  }
+
+  async function predictClearance() {
+    var btn = document.getElementById("btnC");
+    var box = document.getElementById("cResult");
+    btn.disabled = true;
+    btn.textContent = "Predicting...";
+    box.classList.remove("show");
+
+    var body = {
+      queue_length_m:             getVal("queue"),
+      estimated_flow_speed_kmph:  getVal("speed"),
+      car_count:                  parseInt(getVal("cars")),
+      bike_count:                 parseInt(getVal("bikes")),
+      bus_count:                  parseInt(getVal("buses")),
+      truck_count:                parseInt(getVal("trucks")),
+      weighted_traffic_index:     getVal("wti"),
+      ev_distance_from_signal_km: getVal("evdist"),
+      cycle_position_sec:         parseInt(getVal("cycle")),
+      model_name:                 document.getElementById("model").value
+    };
+
+    try {
+      var res  = await fetch(API + "/predict/clearance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json();
+      var isGreen = data.signal_action.indexOf("GREEN now") !== -1;
+      var badge = '<div style="margin-top:10px"><span class="badge ' + (isGreen ? "badge-green" : "badge-red") + '">' + data.signal_action + '</span></div>';
+      box.innerHTML =
+        row("Clearance Distance", data.clearance_distance_km.toFixed(4) + " km") +
+        row("Model Used", data.model_used) +
+        badge;
+      box.classList.add("show");
+    } catch(e) {
+      box.innerHTML = '<p class="error-msg">Could not reach API. Run the server first:<br><code>uvicorn main:app --reload</code></p>';
+      box.classList.add("show");
+    }
+    btn.disabled = false;
+    btn.textContent = "Predict Clearance Distance";
+  }
+
+  async function predictIncident() {
+    var btn = document.getElementById("btnI");
+    var box = document.getElementById("iResult");
+    btn.disabled = true;
+    btn.textContent = "Detecting...";
+    box.classList.remove("show");
+
+    var body = {
+      queue_length_m:             getVal("i_queue"),
+      estimated_flow_speed_kmph:  getVal("i_speed"),
+      car_count:                  parseInt(getVal("i_cars")),
+      bike_count:                 parseInt(getVal("i_bikes")),
+      bus_count:                  parseInt(getVal("i_buses")),
+      truck_count:                parseInt(getVal("i_trucks")),
+      weighted_traffic_index:     getVal("i_wti"),
+      ev_distance_from_signal_km: getVal("i_evdist"),
+      cycle_position_sec:         parseInt(getVal("i_cycle")),
+      model_name:                 "XGBoost"
+    };
+
+    try {
+      var res  = await fetch(API + "/predict/incident", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      var data = await res.json();
+      var cls  = data.incident_detected ? "red" : "green";
+      var status = data.incident_detected ? "INCIDENT DETECTED" : "NORMAL TRAFFIC";
+      box.innerHTML =
+        row("Probability", (data.incident_probability * 100).toFixed(1) + "%", cls) +
+        row("Status", status, cls) +
+        row("Reason", data.reason);
+      box.classList.add("show");
+    } catch(e) {
+      box.innerHTML = '<p class="error-msg">Could not reach API. Run the server first:<br><code>uvicorn main:app --reload</code></p>';
+      box.classList.add("show");
+    }
+    btn.disabled = false;
+    btn.textContent = "Detect Incident";
+  }
+</script>
+</body>
+</html>
