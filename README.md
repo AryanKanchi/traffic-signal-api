@@ -59,6 +59,10 @@ curl -X POST "http://localhost:8000/predict/clearance" \
 
 ## 🚀 Getting Started
 
+## 🌐 Live API
+**Base URL:** https://traffic-signal-api.onrender.com
+**Docs:** https://traffic-signal-api.onrender.com/docs
+
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/AryanKanchi/traffic-signal-api.git
